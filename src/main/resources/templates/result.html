@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>搜索页</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+</head>
+<body>
+<div style="padding: 100px 100px 10px;">
+    <form role="form">
+        <input type="hidden" id="list" value="${list}">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="input-group">
+                    <input id="key" type="text" name="description" value="" class="form-control">
+                    <span class="input-group-btn">
+                        <button id="btn" class="btn btn-primary" type="button">搜索</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <br>
+        <br>
+        <br>
+        <div id="res">
+            <table width="600" class="table">
+                <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>性别</th>
+                    <th><a id="age" class="" href="#">年龄</a></th>
+                    <th>国籍</th>
+                    <th>描述</th>
+                    <th>电话</th>
+                </tr>
+                </thead>
+                <tbody id="result">
+
+                </tbody>
+            </table>
+        </div>
+        <!--<span id="spanFirst">首页</span> <span id="spanPre">上一页</span> <span id="spanNext">下一页</span> <span id="spanLast">尾页</span> 第<span id="spanPageNum"></span>页/共<span id="spanTotalPage"></span>页-->
+    </form>
+</div>
+</body>
+</html>
+<script>
+    var data = null;
+    $("#btn").click(function () {
+        $("#result").empty();
+        // $("#res").addClass("hidden");
+        var des = $("#key").val();
+        $.ajax({
+            type:"POST",
+            url:"/user/query/condition",
+            data:JSON.stringify({"description":des}),
+            dataType : "json",
+            contentType:'application/json;charset=UTF-8',
+            success:function(r){
+                data = r;
+                var _html = '';
+                for (var i=0;i< data.length;i++) {
+                    _html += '<tr class="active">' +
+                        '<td>' + data[i].userName + '</td>' +
+                        '<td>' + data[i].sex + '</td>' +
+                        '<td>' + data[i].age + '</td>' +
+                        '<td>' + data[i].address + '</td>' +
+                        '<td>' + data[i].description + '</td>' +
+                        '<td>' + data[i].mobile + '</td>' +
+                        '</tr>'
+                }
+                $("#result").append(_html)
+                // $("#res").removeClass("hidden")
+            },
+            error:function(xhr){
+                alert("网络异常")
+            }
+        });
+    });
+
+    $("#age").click(function () {
+        var sort = null;
+        var des = $("#key").val();
+        var asc = $("#age").hasClass("age");
+        if (asc) {
+            sort = "desc";
+            $("#age").removeClass("age");
+        } else {
+            sort = "asc";
+            $("#age").addClass("age");
+        }
+        $("#result").empty();
+        $.ajax({
+            type:"POST",
+            url:"/user/list/sort",
+            data:{"sort":sort,"description":des},
+            dataType : "json",
+            success:function(r){
+                data = r;
+                var _html = '';
+                for (var i=0;i< data.length;i++) {
+                    _html += '<tr class="active">' +
+                        '<td>' + data[i].userName + '</td>' +
+                        '<td>' + data[i].sex + '</td>' +
+                        '<td>' + data[i].age + '</td>' +
+                        '<td>' + data[i].address + '</td>' +
+                        '<td>' + data[i].description + '</td>' +
+                        '<td>' + data[i].mobile + '</td>' +
+                        '</tr>'
+                }
+                $("#result").append(_html)
+                // $("#res").removeClass("hidden")
+            },
+            error:function(xhr){
+                alert("网络异常")
+            }
+        });
+    });
+
+    /*分页*/
+    var theTable = document.getElementById("result");
+    var totalPage = document.getElementById("spanTotalPage");
+    var pageNum = document.getElementById("spanPageNum");
+    var spanPre = document.getElementById("spanPre");
+    var spanNext = document.getElementById("spanNext");
+    var spanFirst = document.getElementById("spanFirst");
+    var spanLast = document.getElementById("spanLast");
+    var numberRowsInTable = theTable.rows.length;
+    var pageSize = 4;
+    var page = 1;
+    //下一页
+    function next(){
+        hideTable();
+        currentRow = pageSize * page;
+        maxRow = currentRow + pageSize;
+        if ( maxRow > numberRowsInTable ) maxRow = numberRowsInTable;
+        for ( var i = currentRow; i< maxRow; i++ ){
+            theTable.rows[i].style.display = '';
+        }
+        page++;
+        if ( maxRow == numberRowsInTable ) { nextText(); lastText(); }
+        showPage();
+        preLink();
+        firstLink();
+    }
+    //上一页
+    function pre(){
+        hideTable();
+        page--;
+        currentRow = pageSize * page;
+        maxRow = currentRow - pageSize;
+        if ( currentRow > numberRowsInTable ) currentRow = numberRowsInTable;
+        for ( var i = maxRow; i< currentRow; i++ ){
+            theTable.rows[i].style.display = '';
+        }
+        if ( maxRow == 0 ){ preText(); firstText(); }
+        showPage();
+        nextLink();
+        lastLink();
+    }
+    //第一页
+    function first(){
+        hideTable();
+        page = 1;
+        for ( var i = 0; i<pageSize; i++ ){
+            theTable.rows[i].style.display = '';
+        }
+        showPage();
+        preText();
+        nextLink();
+        lastLink();
+    }
+    //最后一页
+    function last(){
+        hideTable();
+        page = pageCount();
+        currentRow = pageSize * (page - 1);
+        for ( var i = currentRow; i<numberRowsInTable; i++ ){
+            theTable.rows[i].style.display = '';
+        }
+        showPage();
+        preLink();
+        nextText();
+        firstLink();
+    }
+    function hideTable(){
+        for ( var i = 0; i<numberRowsInTable; i++ ){
+            theTable.rows[i].style.display = 'none';
+        }
+    }
+    function showPage(){
+        pageNum.innerHTML = page;
+    }
+    //总共页数
+    function pageCount(){
+        var count = 0;
+        if ( numberRowsInTable%pageSize != 0 ) count = 1;
+        return parseInt(numberRowsInTable/pageSize) + count;
+    }
+    //显示链接
+    function preLink(){ spanPre.innerHTML = "<a href='/user/list?page='+ page -1 >上一页</a>";}
+    function preText(){ spanPre.innerHTML = "上一页";}
+    function nextLink(){ spanNext.innerHTML = "<a href='javascript:next();'>下一页</a>";}
+    function nextText(){ spanNext.innerHTML = "下一页";}
+    function firstLink(){ spanFirst.innerHTML = "<a href='/user/list?page=1'>首页</a>";}
+    function firstText(){ spanFirst.innerHTML = "首页";}
+    function lastLink(){ spanLast.innerHTML = "<a href='javascript:last();'>尾页</a>";}
+    function lastText(){ spanLast.innerHTML = "尾页";}
+    //隐藏表格
+    function hide(){
+        for ( var i = pageSize; i<numberRowsInTable; i++ ){
+            theTable.rows[i].style.display = 'none';
+        }
+        totalPage.innerHTML = pageCount();
+        pageNum.innerHTML = '1';
+        nextLink();
+        lastLink();
+    }
+    hide();
+
+</script>
